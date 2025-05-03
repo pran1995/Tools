@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Advanced image compressor, editor, converter and background changer with SEO optimization and AdSense monetization.">
+  <title>Advanced Image Tool</title>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script>
+    (adsbygoogle = window.adsbygoogle || []).push({
+      google_ad_client: "ca-pub-7857610555538969",
+      enable_page_level_ads: true
+    });
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Arial', sans-serif; background-color: #f0f4f8; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; flex-direction: column; }
+    header { background-color: #2b2d42; color: white; padding: 1rem 0; width: 100%; text-align: center; }
+    h1 { font-size: 2.5rem; font-weight: bold; }
+    .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); width: 100%; max-width: 1200px; margin: 20px auto; }
+    .tools { display: flex; flex-direction: column; gap: 20px; }
+    .tools input[type="file"] { background-color: #3498db; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
+    .tools button { padding: 10px 15px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+    .tools button:hover { background-color: #2980b9; }
+    .tools button:disabled { background-color: #BDC3C7; }
+    .canvas-container { display: flex; justify-content: center; margin-top: 2rem; }
+    canvas { max-width: 100%; border: 1px solid #ddd; border-radius: 5px; }
+    .download-link { display: block; text-align: center; margin-top: 1rem; font-size: 1rem; color: #3498db; text-decoration: none; font-weight: bold; }
+    .download-link:hover { color: #2980b9; }
+    .adsense { margin-top: 2rem; text-align: center; }
+    #progressBarContainer { width: 100%; height: 10px; background-color: #ddd; margin-top: 10px; display: none; }
+    #progressBar { height: 100%; width: 0; background-color: #3498db; }
+    .tool-section { margin-bottom: 20px; }
+    .tool-section h2 { margin-bottom: 10px; color: #2b2d42; }
+    .settings { display: flex; gap: 10px; align-items: center; }
+    .settings label { min-width: 150px; }
+    .settings input { flex-grow: 1; }
+    .status { margin-top: 10px; color: #e74c3c; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Advanced Image Tool</h1>
+    <p>Compress, Edit, Convert, and Remove Background from Images</p>
+  </header>
+
+  <div class="container">
+    <div class="tool-section">
+      <h2>Upload Image</h2>
+      <input type="file" id="imageInput" accept="image/*">
+      <div id="progressBarContainer">
+        <div id="progressBar"></div>
+      </div>
+      <div id="uploadStatus" class="status"></div>
+    </div>
+
+    <div class="tool-section">
+      <h2>Compression Settings</h2>
+      <div class="settings">
+        <label for="compressionRange">Quality:</label>
+        <input type="range" id="compressionRange" min="10" max="100" value="80">
+        <span id="qualityValue">80%</span>
+      </div>
+      <button onclick="compressImage()">Compress Image</button>
+    </div>
+
+    <div class="tool-section">
+      <h2>Conversion</h2>
+      <button onclick="convertImage('png')">Convert to PNG</button>
+      <button onclick="convertImage('jpg')">Convert to JPG</button>
+      <button onclick="convertImage('webp')">Convert to WebP</button>
+    </div>
+
+    <div class="tool-section">
+      <h2>Editing Tools</h2>
+      <button onclick="removeBackground()">Remove Background</button>
+      <button onclick="cropImage()">Crop Image</button>
+      <div class="settings" style="margin-top: 10px;">
+        <label for="resizeWidth">Width:</label>
+        <input type="number" id="resizeWidth" placeholder="Width in pixels">
+        <label for="resizeHeight">Height:</label>
+        <input type="number" id="resizeHeight" placeholder="Height in pixels">
+      </div>
+      <button onclick="resizeImage()">Resize Image</button>
+      <button onclick="applyFilter('grayscale')">Grayscale</button>
+      <button onclick="applyFilter('sepia')">Sepia</button>
+    </div>
+
+    <div class="canvas-container">
+      <canvas id="previewCanvas"></canvas>
+    </div>
+
+    <a class="download-link" id="downloadLink" download="processed_image.jpg" style="display: none;">Download Image</a>
+
+    <div class="adsense">
+      <!-- Google AdSense Ad Slot -->
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-7857610555538969"
+           data-ad-slot="8768631322"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>
+        (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </div>
+  </div>
+
+  <script>
+    let currentImage = null;
+    let originalImageData = null;
+
+    // Initialize event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('compressionRange').addEventListener('input', function() {
+        document.getElementById('qualityValue').textContent = this.value + '%';
+      });
+
+      document.getElementById('imageInput').addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+          loadImage(e.target.files[0]);
+        }
+      });
+    });
+
+    // Load image to canvas
+    function loadImage(file) {
+      const canvas = document.getElementById('previewCanvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        img.onload = function() {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          currentImage = img;
+          originalImageData = canvas.toDataURL('image/jpeg');
+          document.getElementById('downloadLink').style.display = 'none';
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Compress Image Function
+    function compressImage() {
+      if (!currentImage) return alert('Please upload an image first.');
+      
+      const canvas = document.getElementById('previewCanvas');
+      const ctx = canvas.getContext('2d');
+      const quality = document.getElementById('compressionRange').value / 100;
+      
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      document.getElementById('downloadLink').href = dataUrl;
+      document.getElementById('downloadLink').download = 'compressed_image.jpg';
+      document.getElementById('downloadLink').style.display = 'block';
+    }
+
+    // Convert Image Function
+    function convertImage(format) {
+      if (!currentImage) return alert('Please upload an image first.');
+      
+      const canvas = document.getElementById('previewCanvas');
+      const ctx = canvas.getContext('2d');
+      let mimeType, extension;
+      
+      switch(format) {
+        case 'png':
+          mimeType = 'image/png';
+          extension = 'png';
+          break;
+        case 'webp':
+          mimeType = 'image/webp';
+          extension = 'webp';
+          break;
+        default:
+          mimeType = 'image/jpeg';
+          extension = 'jpg';
+      }
+      
+      const dataUrl = canvas.toDataURL(mimeType);
+      document.getElementById('downloadLink').href = dataUrl;
+      document.getElementById('downloadLink').download = `converted_image.${extension}`;
+      document.getElementById('downloadLink').style.display = 'block';
+    }
+
+    // Background Removal using Remove.bg API
+    async function removeBackground() {
+      if (!currentImage) return alert('Please upload an image first.');
+      
+      const input = document.getElementById('imageInput').files[0];
+      if (!input) {
+        alert('Please select an image.');
+        return;
+      }
+
+      document.getElementById('uploadStatus').textContent = 'Processing...';
+      document.getElementById('progressBarContainer').style.display = 'block';
+      
+      const formData = new FormData();
+      formData.append('image_file', input);
+
+      try {
+        const response = await fetch('/remove-background', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to remove background.');
+        }
+
+        const blob = await response.blob();
+        const imgUrl = URL.createObjectURL(blob);
+
+        const canvas = document.getElementById('previewCanvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.onload = function() {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          currentImage = img;
+          
+          document.getElementById('downloadLink').href = imgUrl;
+          document.getElementById('downloadLink').download = 'background_removed.png';
+          document.getElementById('downloadLink').style.display = 'block';
+          document.getElementById('uploadStatus').textContent = '';
+          document.getElementById('progressBarContainer').style.display = 'none';
+        };
+        img.src = imgUrl;
+      } catch (error) {
+        document.getElementById('uploadStatus').textContent = 'Error: ' + error.message;
+        document.getElementById('progressBarContainer').style.display = 'none';
+      }
+    }
+
+    // Crop Image Function
+    function cropImage() {
+      if (!currentImage) return alert('Please upload an image first.');
+      
+      const canvas = document.getElementById('previewCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      // For simplicity, using fixed crop values. In a real app, you'd implement interactive cropping
+      const x = 50, y = 50, width = Math.min(200, canvas.width - x), height = Math.min(200, canvas.height - y);
+      
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = width;
+      tempCanvas.height = height;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
+      
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(tempCanvas, 0, 0);
+      
+      document.getElementById('downloadLink').href = canvas.toDataURL();
+      document.getElementById('downloadLink').download = 'cropped_image.jpg';
+      document.getElementById('downloadLink').style.display = 'block';
+    }
+
+    // Resize Image Function
+    function resizeImage() {
+      if (!currentImage) return alert('Please upload an image first.');
+      
+      const canvas = document.getElementById('previewCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      let newWidth = parseInt(document.getElementById('resizeWidth').value);
+      let newHeight = parseInt(document.getElementById('resizeHeight').value);
+      
+      if (!newWidth && !newHeight) {
+        alert('Please enter width or height');
+        return;
+      }
+      
+      // If only one dimension is provided, maintain aspect ratio
+      if (!newWidth) {
+        newWidth = (currentImage.width / currentImage.height) * newHeight;
+      } else if (!newHeight) {
+        newHeight = (currentImage.height / currentImage.width) * newWidth;
+      }
+      
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = newWidth;
+      tempCanvas.height = newHeight;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(canvas, 0, 0, newWidth, newHeight);
+      
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+      ctx.drawImage(tempCanvas, 0, 0);
+      
+      document.getElementById('downloadLink').href = canvas.toDataURL();
+      document.getElementById('downloadLink').download = 'resized_image.jpg';
+      document.getElementById('downloadLink').style.display = 'block';
+    }
+
+    // Apply Filter
+    function applyFilter(filterType) {
+      if (!currentImage) return alert('Please upload an image first.');
+      
+      const canvas = document.getElementById('previewCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      ctx.filter = filterType === 'grayscale' ? 'grayscale(100%)' : 'sepia(100%)';
+      ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+      ctx.filter = 'none';
+      
+      document.getElementById('downloadLink').href = canvas.toDataURL();
+      document.getElementById('downloadLink').download = `filtered_${filterType}.jpg`;
+      document.getElementById('downloadLink').style.display = 'block';
+    }
+
+    // Reset to original image
+    function resetImage() {
+      if (!originalImageData) return;
+      
+      const canvas = document.getElementById('previewCanvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = function() {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        currentImage = img;
+      };
+      img.src = originalImageData;
+    }
+  </script>
+</body>
+</html>
